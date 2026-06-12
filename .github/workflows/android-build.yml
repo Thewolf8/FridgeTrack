@@ -27,8 +27,11 @@ jobs:
       - name: Build web app
         run: npm run build
 
+      # ✨ تم التعديل هنا: تثبيت مكتبة الأندرويد الخاصة بكاباسيتور محلياً لحل المشكلة مباشرة
       - name: Setup Capacitor
-        run: npm install -g @capacitor/cli
+        run: |
+          npm install -g @capacitor/cli
+          npm install @capacitor/android
 
       - name: Sync Capacitor Android
         run: npx cap sync android
