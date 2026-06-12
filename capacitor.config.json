@@ -1,0 +1,17 @@
+{
+  "appId": "com.fridgetrack.app",
+  "appName": "FridgeTrack",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#10B981"
+    },
+    "Filesystem": {
+      "directory": "DOCUMENTS"
+    }
+  }
+}
