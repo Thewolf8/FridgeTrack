@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. جلب ملفات المشروع الأساسية (بدون مجلد أندرويد)
+      # 1. جلب ملفات المشروع الأساسية
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -23,29 +23,29 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      # 3. تثبيت حزم الجافاسكريبت المعتمدة في مشروعك
+      # 3. تثبيت حزم الجافاسكريبت
       - name: Install dependencies
         run: npm ci
 
-      # 4. بناء ملفات الويب (مهم جداً لأن كاباسيتور يحتاجها قبل إنشاء الأندرويد)
+      # 4. بناء ملفات الويب
       - name: Build web app
         run: npm run build
 
-      # 5. توليد مجلد أندرويد كامل ونظيف بملفات جرادل الأصلية من الصفر
+      # 5. توليد مجلد أندرويد من الصفر
       - name: Create Android Project from Scratch
         run: |
           npm install @capacitor/cli @capacitor/android @capacitor/core
           npx cap add android
           npx cap sync android
 
-      # 6. إعداد جافا 17 المطلوبة لمشروعك الجديد
+      # 6. ✨ تم التعديل هنا: ترقية الجافا إلى إصدار 21 لحل مشكلة الـ الكومبايل
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
-      # 7. إعطاء صلاحية التشغيل لملف gradlew الذي تم توليده للتو
+      # 7. إعطاء صلاحية التشغيل لملف gradlew
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
