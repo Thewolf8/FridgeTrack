@@ -257,8 +257,11 @@ function Settings() {
           </h2>
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <button
+              type="button"
               onClick={() => updateSettings({ darkMode: !settings.darkMode })}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              aria-label={settings.darkMode ? t('lightMode') : t('darkMode')}
+              aria-pressed={settings.darkMode}
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors active:bg-gray-100 dark:active:bg-gray-700"
             >
               <div className="flex items-center gap-3">
                 {settings.darkMode ? <Moon size={20} className="text-purple-500" /> : <Sun size={20} className="text-amber-500" />}
@@ -266,8 +269,8 @@ function Settings() {
                   {settings.darkMode ? t('darkMode') : t('lightMode')}
                 </span>
               </div>
-              <div className={`h-7 w-12 rounded-full transition-colors ${settings.darkMode ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'} relative`}>
-                <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${settings.darkMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <div dir="ltr" className={`h-7 w-12 rounded-full transition-colors duration-300 ${settings.darkMode ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'} relative`}>
+                <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300 ${settings.darkMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </div>
             </button>
           </div>
@@ -315,10 +318,14 @@ function Settings() {
                 <span className="text-gray-900 dark:text-white font-medium">{t('enableNotifications')}</span>
               </div>
               <button
+                type="button"
+                dir="ltr"
                 onClick={() => updateSettings({ notifications: !settings.notifications })}
-                className={`h-7 w-12 rounded-full transition-colors ${settings.notifications ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} relative`}
+                aria-label={t('enableNotifications')}
+                aria-pressed={settings.notifications}
+                className={`h-7 w-12 rounded-full transition-colors duration-300 ${settings.notifications ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} relative`}
               >
-                <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${settings.notifications ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300 ${settings.notifications ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
             </div>
             <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700">
@@ -327,10 +334,14 @@ function Settings() {
                 <span className="text-gray-900 dark:text-white font-medium">{t('enableUnusedReminders')}</span>
               </div>
               <button
+                type="button"
+                dir="ltr"
                 onClick={() => updateSettings({ unusedReminders: !settings.unusedReminders })}
-                className={`h-7 w-12 rounded-full transition-colors ${settings.unusedReminders ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} relative`}
+                aria-label={t('enableUnusedReminders')}
+                aria-pressed={settings.unusedReminders}
+                className={`h-7 w-12 rounded-full transition-colors duration-300 ${settings.unusedReminders ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} relative`}
               >
-                <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${settings.unusedReminders ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300 ${settings.unusedReminders ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
             </div>
             <div className="p-4 border-t border-gray-100 dark:border-gray-700">

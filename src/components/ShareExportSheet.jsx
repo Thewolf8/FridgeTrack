@@ -92,7 +92,7 @@ function ShareExportSheet({ isOpen, onClose, items }) {
     {
       key: 'text',
       label: t('shareAsText'),
-      description: 'Share via WhatsApp, Telegram, etc.',
+      description: t('shareAsTextDesc'),
       icon: Share2,
       color: 'text-green-500',
       bg: 'bg-green-500/10',
@@ -101,7 +101,7 @@ function ShareExportSheet({ isOpen, onClose, items }) {
     {
       key: 'pdf',
       label: t('downloadPDF'),
-      description: 'Download as PDF document',
+      description: t('downloadPDFDesc'),
       icon: FileDown,
       color: 'text-red-500',
       bg: 'bg-red-500/10',
@@ -110,7 +110,7 @@ function ShareExportSheet({ isOpen, onClose, items }) {
     {
       key: 'json',
       label: t('exportJSON'),
-      description: 'Export as JSON for backup',
+      description: t('exportJSONDesc'),
       icon: FileJson,
       color: 'text-blue-500',
       bg: 'bg-blue-500/10',
@@ -126,6 +126,9 @@ function ShareExportSheet({ isOpen, onClose, items }) {
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
         onClick={onClose}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('shareExport')}
       >
         <motion.div
           initial={{ y: '100%' }}
@@ -140,8 +143,10 @@ function ShareExportSheet({ isOpen, onClose, items }) {
               {t('shareExport')}
             </h3>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500"
+              aria-label={t('close')}
+              className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95"
             >
               <X size={20} />
             </button>
@@ -152,14 +157,16 @@ function ShareExportSheet({ isOpen, onClose, items }) {
               const Icon = option.icon;
               return (
                 <button
+                  type="button"
                   key={option.key}
                   onClick={option.onClick}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                  aria-label={`${option.label} — ${option.description}`}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.98] transition-all text-start"
                 >
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${option.bg}`}>
-                    <Icon className={option.color} size={24} />
+                  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${option.bg}`}>
+                    <Icon className={option.color} size={24} aria-hidden="true" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-medium text-gray-900 dark:text-white">{option.label}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">{option.description}</p>
                   </div>
@@ -169,8 +176,10 @@ function ShareExportSheet({ isOpen, onClose, items }) {
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="w-full mt-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium"
+            aria-label={t('cancel')}
+            className="w-full mt-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-[0.98] transition-all"
           >
             {t('cancel')}
           </button>

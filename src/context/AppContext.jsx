@@ -6,6 +6,15 @@ import { setLanguage, getCurrentLanguage } from '../i18n';
 
 const AppContext = createContext(null);
 
+// Apply dark mode directly to DOM
+function applyDarkMode(isDark) {
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+}
+
 export function AppProvider({ children }) {
   const storage = useStorage();
   const notifications = useNotifications();
@@ -16,6 +25,12 @@ export function AppProvider({ children }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSection, setSelectedSection] = useState('all');
 
+  // Apply dark mode on initial load
+  useEffect(() => {
+    applyDarkMode(settings.darkMode !== false);
+  }, []);
+
+  // Apply language changes
   useEffect(() => {
     setLanguage(settings.language);
   }, [settings.language]);
@@ -37,8 +52,15 @@ export function AppProvider({ children }) {
     const newSettings = { ...settings, ...updates };
     setSettingsState(newSettings);
     saveSettings(newSettings);
-    if (updates.language) {
+
+    // Apply language immediately
+    if (updates.language !== undefined) {
       setLanguage(updates.language);
+    }
+
+    // Apply dark mode immediately — no restart needed
+    if (updates.darkMode !== undefined) {
+      applyDarkMode(updates.darkMode);
     }
   }, [settings]);
 

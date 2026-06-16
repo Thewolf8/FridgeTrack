@@ -162,6 +162,10 @@ const translations = {
     optional: "optional",
     add: "Add",
     shareSuccess: "Shared successfully",
+    shareAsTextDesc: "Share via WhatsApp, Telegram, etc.",
+    downloadPDFDesc: "Download as PDF document",
+    exportJSONDesc: "Export as JSON for backup",
+    mainNavigation: "Main navigation",
     appearance: "Appearance",
   },
   ar: {
@@ -327,6 +331,10 @@ const translations = {
     optional: "اختياري",
     add: "إضافة",
     shareSuccess: "تمت المشاركة بنجاح",
+    shareAsTextDesc: "مشاركة عبر واتساب وتيليغرام وغيرها",
+    downloadPDFDesc: "تحميل كملف PDF",
+    exportJSONDesc: "تصدير كملف JSON للنسخ الاحتياطي",
+    mainNavigation: "التنقل الرئيسي",
     appearance: "المظهر",
   },
   fr: {
@@ -492,6 +500,10 @@ const translations = {
     optional: "optionnel",
     add: "Ajouter",
     shareSuccess: "Partagé avec succès",
+    shareAsTextDesc: "Partager via WhatsApp, Telegram, etc.",
+    downloadPDFDesc: "Télécharger en document PDF",
+    exportJSONDesc: "Exporter en JSON pour sauvegarde",
+    mainNavigation: "Navigation principale",
     appearance: "Apparence",
   }
 };
