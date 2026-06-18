@@ -40,15 +40,15 @@ function BottomNav() {
                 onClick={() => navigateTo('add')}
                 aria-label={tab.label}
                 aria-current={isActive ? 'page' : undefined}
-                className="relative -mt-6 flex flex-col items-center active:scale-95 transition-transform"
+                className="relative flex flex-col items-center justify-center py-2 px-3 min-w-[60px] active:scale-95 transition-transform"
               >
                 <motion.div
                   whileTap={{ scale: 0.9 }}
-                  className="flex h-14 w-14 items-center justify-center rounded-full bg-green-500 shadow-lg shadow-green-500/30 text-white"
+                  className="flex items-center justify-center rounded-xl bg-green-500 shadow-md shadow-green-500/30 text-white p-2"
                 >
-                  <PlusCircle size={28} aria-hidden="true" />
+                  <PlusCircle size={24} aria-hidden="true" />
                 </motion.div>
-                <span className="text-[10px] mt-0.5 text-gray-500 dark:text-gray-400 font-medium">
+                <span className="text-[10px] mt-0.5 text-green-500 font-medium">
                   {tab.label}
                 </span>
               </button>

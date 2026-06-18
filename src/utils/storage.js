@@ -12,6 +12,9 @@ const DEFAULT_SETTINGS = {
   unusedReminders: true,
   dailyNotificationTime: '08:00',
   defaultExportFormat: 'pdf',
+  animationsEnabled: true,
+  dateFormat: 'DMY',
+  datePickerType: 'full',
 };
 
 // Inventory

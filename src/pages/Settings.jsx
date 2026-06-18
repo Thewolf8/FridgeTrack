@@ -253,15 +253,16 @@ function Settings() {
         {/* Appearance */}
         <section>
           <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-            Appearance
+            {t('appearance')}
           </h2>
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {/* Dark Mode */}
             <button
               type="button"
               onClick={() => updateSettings({ darkMode: !settings.darkMode })}
               aria-label={settings.darkMode ? t('lightMode') : t('darkMode')}
               aria-pressed={settings.darkMode}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors active:bg-gray-100 dark:active:bg-gray-700"
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors active:bg-gray-100 dark:active:bg-gray-700 border-b border-gray-100 dark:border-gray-700"
             >
               <div className="flex items-center gap-3">
                 {settings.darkMode ? <Moon size={20} className="text-purple-500" /> : <Sun size={20} className="text-amber-500" />}
@@ -273,6 +274,83 @@ function Settings() {
                 <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300 ${settings.darkMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </div>
             </button>
+
+            {/* Animations */}
+            <button
+              type="button"
+              onClick={() => updateSettings({ animationsEnabled: !(settings.animationsEnabled !== false) })}
+              aria-pressed={settings.animationsEnabled !== false}
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors active:bg-gray-100 dark:active:bg-gray-700"
+            >
+              <div className="flex items-start gap-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500 mt-0.5">
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                </svg>
+                <div className="text-start">
+                  <p className="text-gray-900 dark:text-white font-medium">{t('enableAnimations')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('enableAnimationsDesc')}</p>
+                </div>
+              </div>
+              <div dir="ltr" className={`h-7 w-12 rounded-full transition-colors duration-300 shrink-0 ms-3 ${settings.animationsEnabled !== false ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} relative`}>
+                <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300 ${settings.animationsEnabled !== false ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </div>
+            </button>
+          </div>
+        </section>
+
+        {/* Date Settings */}
+        <section>
+          <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            {t('dateSettings')}
+          </h2>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+            {/* Display Format */}
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">{t('dateFormat')}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {['DMY', 'MDY', 'YMD'].map((fmt) => {
+                  const isActive = (settings.dateFormat || 'DMY') === fmt;
+                  return (
+                    <button
+                      key={fmt}
+                      onClick={() => updateSettings({ dateFormat: fmt })}
+                      className={`py-2.5 px-2 rounded-xl text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-green-500 text-white shadow-md shadow-green-500/20'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {t(`dateFmt${fmt}`)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Picker Type */}
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">{t('datePickerType')}</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { key: 'full', label: t('datePickerFull') },
+                  { key: 'month-year', label: t('datePickerMonthYear') },
+                ].map((opt) => {
+                  const isActive = (settings.datePickerType || 'full') === opt.key;
+                  return (
+                    <button
+                      key={opt.key}
+                      onClick={() => updateSettings({ datePickerType: opt.key })}
+                      className={`py-2.5 px-2 rounded-xl text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-green-500 text-white shadow-md shadow-green-500/20'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </section>
 

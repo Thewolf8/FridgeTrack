@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { AppProvider, useApp } from './context/AppContext';
 import { setLanguage, getCurrentLanguage } from './i18n';
 import BottomNav from './components/BottomNav';
@@ -59,25 +59,27 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300">
-      <main className="max-w-lg mx-auto relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentPage}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            {renderPage()}
-          </motion.div>
-        </AnimatePresence>
-      </main>
+    <MotionConfig reducedMotion={settings.animationsEnabled !== false ? 'never' : 'always'}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300">
+        <main className="max-w-lg mx-auto relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPage}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              {renderPage()}
+            </motion.div>
+          </AnimatePresence>
+        </main>
 
-      <BottomNav />
-      <ToastNotification />
-      <ConfirmDialog />
-    </div>
+        <BottomNav />
+        <ToastNotification />
+        <ConfirmDialog />
+      </div>
+    </MotionConfig>
   );
 }
 

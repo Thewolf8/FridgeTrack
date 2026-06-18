@@ -15,6 +15,11 @@ function applyDarkMode(isDark) {
   }
 }
 
+// Apply animations — instant, no restart needed
+function applyAnimations(enabled) {
+  document.documentElement.classList.toggle('no-animations', !enabled);
+}
+
 export function AppProvider({ children }) {
   const storage = useStorage();
   const notifications = useNotifications();
@@ -28,6 +33,7 @@ export function AppProvider({ children }) {
   // Apply dark mode on initial load
   useEffect(() => {
     applyDarkMode(settings.darkMode !== false);
+    applyAnimations(settings.animationsEnabled !== false);
   }, []);
 
   // Apply language changes
@@ -61,6 +67,11 @@ export function AppProvider({ children }) {
     // Apply dark mode immediately — no restart needed
     if (updates.darkMode !== undefined) {
       applyDarkMode(updates.darkMode);
+    }
+
+    // Apply animations immediately — no restart needed
+    if (updates.animationsEnabled !== undefined) {
+      applyAnimations(updates.animationsEnabled);
     }
   }, [settings]);
 

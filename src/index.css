@@ -73,3 +73,12 @@
     @apply bg-background text-foreground;
   }
 }
+/* ── Disable ALL animations instantly when .no-animations is on <html> ── */
+.no-animations *,
+.no-animations *::before,
+.no-animations *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0ms !important;
+}

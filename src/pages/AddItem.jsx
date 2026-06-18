@@ -1,13 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Save, Bell, BellOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Save } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { t, getSections, getCategories, getUnits } from '../i18n';
 import { generateId, getDraftItem, saveDraftItem, clearDraftItem } from '../utils/storage';
 
 function AddItem({ editItem }) {
-  const { addItem, updateItem, navigateTo, showToast } = useApp();
+  const { addItem, updateItem, navigateTo, showToast, settings } = useApp();
   const isEditing = !!editItem;
+  const isMonthYear = settings?.datePickerType === 'month-year';
+
+  // Convert YYYY-MM-DD ↔ YYYY-MM for month-only picker
+  const toInputVal = (dateStr) =>
+    isMonthYear && dateStr ? dateStr.substring(0, 7) : (dateStr || '');
+  const fromInputVal = (val) =>
+    isMonthYear && val ? val + '-01' : val;
 
   const [form, setForm] = useState({
     name: '',
@@ -161,10 +168,15 @@ function AddItem({ editItem }) {
           <div>
             <label className={labelClass}>{t('quantity')}</label>
             <input
-              type="number"
-              min="0"
-              value={form.quantity}
-              onChange={(e) => handleChange('quantity', parseInt(e.target.value) || 0)}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={form.quantity === 0 ? '' : form.quantity}
+              placeholder="0"
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^0-9]/g, '');
+                handleChange('quantity', raw === '' ? 0 : parseInt(raw, 10));
+              }}
               className={inputClass}
             />
           </div>
@@ -201,9 +213,9 @@ function AddItem({ editItem }) {
         <div>
           <label className={labelClass}>{t('purchaseDate')} ({t('optional')})</label>
           <input
-            type="date"
-            value={form.purchaseDate}
-            onChange={(e) => handleChange('purchaseDate', e.target.value)}
+            type={isMonthYear ? 'month' : 'date'}
+            value={toInputVal(form.purchaseDate)}
+            onChange={(e) => handleChange('purchaseDate', fromInputVal(e.target.value))}
             className={inputClass}
           />
         </div>
@@ -251,9 +263,9 @@ function AddItem({ editItem }) {
         <div>
           <label className={labelClass}>{t('expirationDate')} ({t('optional')})</label>
           <input
-            type="date"
-            value={form.expirationDate}
-            onChange={(e) => handleChange('expirationDate', e.target.value)}
+            type={isMonthYear ? 'month' : 'date'}
+            value={toInputVal(form.expirationDate)}
+            onChange={(e) => handleChange('expirationDate', fromInputVal(e.target.value))}
             className={inputClass}
           />
         </div>
