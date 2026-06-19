@@ -38,6 +38,42 @@ async function writeFileNative(filename, data, directory = Directory.Documents) 
   return result.uri;
 }
 
+// ===== TRUE DIRECT DOWNLOAD (no share sheet) =====
+// Saves the file straight into Documents/fridgetrack-backups/ on device,
+// or triggers a normal browser download on web. Distinct from the
+// share*() functions above, which always open the OS share sheet.
+export async function downloadFile(content, filename, isBase64 = false) {
+  const path = `fridgetrack-backups/${filename}`;
+
+  if (isNativePlatform() && Filesystem) {
+    try {
+      const perm = await Filesystem.checkPermissions?.();
+      if (perm && perm.publicStorage !== 'granted') {
+        await Filesystem.requestPermissions?.();
+      }
+    } catch {
+      // Newer Android versions manage this automatically — continue
+    }
+
+    const data = isBase64 ? content : content;
+    await Filesystem.writeFile({
+      path,
+      data,
+      directory: Directory.Documents,
+      recursive: true,
+    });
+    return `Documents/${path}`;
+  }
+
+  // Web fallback: real browser download
+  if (isBase64) {
+    downloadBase64(content, filename, 'application/octet-stream');
+  } else {
+    downloadBlob(content, filename, 'text/plain');
+  }
+  return filename;
+}
+
 async function shareFileNative(uri, title = 'Share') {
   if (!Share) throw new Error('Share plugin not available');
   await Share.share({

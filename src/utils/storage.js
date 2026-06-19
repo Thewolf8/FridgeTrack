@@ -6,7 +6,7 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_SETTINGS = {
-  darkMode: true,
+  theme: 'system', // 'light' | 'dark' | 'system'
   language: 'system',
   notifications: true,
   unusedReminders: true,
@@ -50,7 +50,13 @@ export function getSettings() {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
     const parsed = data ? JSON.parse(data) : {};
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    const merged = { ...DEFAULT_SETTINGS, ...parsed };
+    // Migrate legacy darkMode boolean → theme string (one-time, transparent to the user)
+    if (parsed.theme === undefined && parsed.darkMode !== undefined) {
+      merged.theme = parsed.darkMode ? 'dark' : 'light';
+    }
+    delete merged.darkMode;
+    return merged;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
