@@ -6,13 +6,12 @@ import { setLanguage, getCurrentLanguage } from '../i18n';
 
 const AppContext = createContext(null);
 
-// Apply dark mode directly to DOM
-function applyDarkMode(isDark) {
-  if (isDark) {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-  }
+// Resolve 'light' | 'dark' | 'system' into an actual dark/light boolean
+// and apply it to the DOM.
+function applyTheme(theme) {
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+  document.documentElement.classList.toggle('dark', isDark);
 }
 
 // Apply animations — instant, no restart needed
@@ -30,11 +29,20 @@ export function AppProvider({ children }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSection, setSelectedSection] = useState('all');
 
-  // Apply dark mode on initial load
+  // Apply theme on initial load
   useEffect(() => {
-    applyDarkMode(settings.darkMode !== false);
+    applyTheme(settings.theme ?? 'system');
     applyAnimations(settings.animationsEnabled !== false);
   }, []);
+
+  // Live-update when OS theme changes, but only while 'system' is selected
+  useEffect(() => {
+    if (settings.theme !== 'system') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => applyTheme('system');
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [settings.theme]);
 
   // Apply language changes
   useEffect(() => {
@@ -64,9 +72,9 @@ export function AppProvider({ children }) {
       setLanguage(updates.language);
     }
 
-    // Apply dark mode immediately — no restart needed
-    if (updates.darkMode !== undefined) {
-      applyDarkMode(updates.darkMode);
+    // Apply theme immediately — no restart needed
+    if (updates.theme !== undefined) {
+      applyTheme(updates.theme);
     }
 
     // Apply animations immediately — no restart needed
