@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
 
 const DEFAULT_SETTINGS = {
   theme: 'system', // 'light' | 'dark' | 'system'
+  darkVariant: 'blue', // 'blue' | 'amoled' — only relevant when theme resolves to dark
   language: 'system',
   notifications: true,
   unusedReminders: true,
