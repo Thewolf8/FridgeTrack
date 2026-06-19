@@ -25,6 +25,7 @@ function ShoppingListPage() {
     clearPurchased,
     addToShoppingList,
     navigateTo,
+    goBack,
     showToast,
   } = useApp();
 
@@ -96,7 +97,7 @@ function ShoppingListPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigateTo('dashboard')}
+              onClick={() => { if (!goBack()) navigateTo('dashboard'); }}
               className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
             >
               <ArrowLeft size={20} />

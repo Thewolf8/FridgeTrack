@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
   AlertCircle,
@@ -11,6 +11,7 @@ import {
   PlusCircle,
   Search,
   Bell,
+  X,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n';
@@ -32,6 +33,7 @@ const PantryIconComp = () => (
 
 function Dashboard() {
   const { inventory, shoppingList, navigateTo, showToast, setSearchQuery } = useApp();
+  const [detailCard, setDetailCard] = useState(null); // { label, color, bg, items } | null
 
   const stats = {
     total: inventory.length,
@@ -60,7 +62,7 @@ function Dashboard() {
       color: 'text-green-500',
       bg: 'bg-green-500/10',
       border: 'border-green-500/20',
-      onClick: () => navigateTo('fridge'),
+      getItems: () => inventory,
     },
     {
       key: 'outOfStock',
@@ -70,7 +72,7 @@ function Dashboard() {
       color: 'text-red-500',
       bg: 'bg-red-500/10',
       border: 'border-red-500/20',
-      onClick: () => navigateTo('fridge'),
+      getItems: () => inventory.filter(i => getStockStatus(i) === 'out'),
     },
     {
       key: 'lowStock',
@@ -80,7 +82,7 @@ function Dashboard() {
       color: 'text-amber-500',
       bg: 'bg-amber-500/10',
       border: 'border-amber-500/20',
-      onClick: () => navigateTo('fridge'),
+      getItems: () => inventory.filter(i => getStockStatus(i) === 'low'),
     },
     {
       key: 'unused',
@@ -90,9 +92,25 @@ function Dashboard() {
       color: 'text-orange-500',
       bg: 'bg-orange-500/10',
       border: 'border-orange-500/20',
-      onClick: () => navigateTo('fridge'),
+      getItems: () => inventory.filter(i => isUnusedAlert(i)),
     },
   ];
+
+  const openCardDetail = (card) => {
+    setDetailCard({
+      key: card.key,
+      label: card.label,
+      icon: card.icon,
+      color: card.color,
+      bg: card.bg,
+      items: card.getItems(),
+    });
+  };
+
+  const handleEditFromModal = (item) => {
+    setDetailCard(null);
+    navigateTo(`edit-${item.id}`);
+  };
 
   const sectionCards = [
     {
@@ -125,6 +143,7 @@ function Dashboard() {
   ];
 
   return (
+    <>
     <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="px-4 pt-4">
@@ -178,7 +197,7 @@ function Dashboard() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 + i * 0.05 }}
                 whileTap={{ scale: 0.96 }}
-                onClick={card.onClick}
+                onClick={() => openCardDetail(card)}
                 className={`flex flex-col items-start p-4 rounded-2xl border ${card.border} ${card.bg} text-left active:scale-95 transition-transform`}
               >
                 <div className={`${card.color} mb-2`}>
@@ -290,6 +309,86 @@ function Dashboard() {
         </div>
       </div>
     </div>
+
+    {/* Card Detail Modal — shows the actual items behind a stat card
+        instead of forcing a navigation to a whole other page */}
+    <AnimatePresence>
+      {detailCard && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setDetailCard(null)}
+        >
+          <motion.div
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 40, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full sm:max-w-md max-h-[80vh] flex flex-col bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-center gap-3 p-5 border-b border-gray-100 dark:border-gray-700">
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${detailCard.bg}`}>
+                <detailCard.icon className={detailCard.color} size={22} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-gray-900 dark:text-white">{detailCard.label}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{detailCard.items.length} {t('all').toLowerCase()}</p>
+              </div>
+              <button
+                onClick={() => setDetailCard(null)}
+                aria-label={t('close')}
+                className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Items */}
+            <div className="overflow-y-auto px-4 py-3 space-y-2">
+              {detailCard.items.length > 0 ? (
+                detailCard.items.map((item) => {
+                  const status = getStockStatus(item);
+                  const statusColor =
+                    status === 'out' ? 'text-red-500' :
+                    status === 'low' ? 'text-amber-500' : 'text-green-500';
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleEditFromModal(item)}
+                      className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.98] transition-all text-left"
+                    >
+                      <span className="font-medium text-gray-900 dark:text-white truncate">{item.name}</span>
+                      <span className={`text-xs font-medium shrink-0 ${statusColor}`}>
+                        {item.quantity} {t(item.unit) || ''}
+                      </span>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">
+                  {t('noItemsFound')}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-100 dark:border-gray-700">
+              <button
+                onClick={() => setDetailCard(null)}
+                className="w-full py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                {t('close')}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   Moon,
@@ -34,6 +34,7 @@ function Settings() {
     settings,
     updateSettings,
     navigateTo,
+    goBack,
     showToast,
     showConfirm,
     resetData,
@@ -269,7 +270,7 @@ function Settings() {
       <div className="sticky top-0 z-30 bg-gray-50/90 dark:bg-gray-900/90 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 px-4 py-3">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigateTo('dashboard')}
+            onClick={() => { if (!goBack()) navigateTo('dashboard'); }}
             className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
           >
             <ArrowLeft size={20} />
@@ -313,6 +314,48 @@ function Settings() {
                 );
               })}
             </div>
+
+            {/* Dark mode style — only shown once Dark is explicitly selected */}
+            <AnimatePresence initial={false}>
+              {settings.theme === 'dark' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden mb-4"
+                >
+                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">{t('darkVariant')}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { key: 'blue', label: t('darkBlueTheme'), swatch: '#1f2937' },
+                      { key: 'amoled', label: t('amoledTheme'), swatch: '#000000' },
+                    ].map((opt) => {
+                      const isActive = (settings.darkVariant ?? 'blue') === opt.key;
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() => updateSettings({ darkVariant: opt.key })}
+                          aria-pressed={isActive}
+                          className={`flex items-center gap-2.5 py-2.5 px-3 rounded-xl border text-xs font-medium transition-colors ${
+                            isActive
+                              ? 'bg-green-500/10 border-green-500 text-green-500'
+                              : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'
+                          }`}
+                        >
+                          <span
+                            className="h-4 w-4 rounded-full shrink-0 border border-white/10"
+                            style={{ backgroundColor: opt.swatch }}
+                          />
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Animations */}
             <div className="flex items-start gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
