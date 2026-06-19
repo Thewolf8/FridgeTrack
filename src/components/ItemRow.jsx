@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -99,12 +99,12 @@ function ItemRow({ item, onEdit, index }) {
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100 }}
-      transition={{ duration: 0.2, delay: index * 0.03 }}
+      transition={{ duration: 0.15, delay: Math.min(index, 8) * 0.02 }}
       drag="x"
+      dragMomentum={false}
       dragConstraints={{ left: -120, right: 0 }}
       dragElastic={0.1}
       onDragStart={handleSwipeStart}
@@ -127,7 +127,7 @@ function ItemRow({ item, onEdit, index }) {
         </button>
       </div>
 
-      <div className="relative z-10 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-4 rtl:pr-4 rtl:pl-4">
+      <div className="relative z-10 bg-white dark:bg-gray-800 p-4 rtl:pr-4 rtl:pl-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             {/* Header line */}
@@ -236,4 +236,9 @@ function ItemRow({ item, onEdit, index }) {
   );
 }
 
-export default ItemRow;
+// Only re-render a row when ITS OWN item data actually changes (reference
+// equality works because useStorage's .map() keeps unrelated items'
+// object references untouched), or when index/onEdit change.
+export default memo(ItemRow, (prev, next) =>
+  prev.item === next.item && prev.index === next.index && prev.onEdit === next.onEdit
+);
