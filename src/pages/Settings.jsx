@@ -4,9 +4,11 @@ import {
   ArrowLeft,
   Moon,
   Sun,
+  Monitor,
   Globe,
   Bell,
   Download,
+  Share2,
   Upload,
   Trash2,
   Shield,
@@ -16,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { t, setLanguage } from '../i18n';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   exportFullBackup,
   importFullBackup,
@@ -24,7 +27,7 @@ import {
   pickJSONFile,
 } from '../utils/fileOperations';
 import { jsPDF } from 'jspdf';
-import { getInventory, getShoppingList, getSettings } from '../utils/storage';
+import { getInventory, getShoppingList } from '../utils/storage';
 
 function Settings() {
   const {
@@ -38,120 +41,146 @@ function Settings() {
 
   const [showPrivacy, setShowPrivacy] = useState(false);
 
-  const handleExportInventory = async (format) => {
-    try {
-      const inventory = getInventory();
-      const shoppingList = getShoppingList();
-      const now = new Date().toLocaleString();
+  const buildInventoryPDF = () => {
+    const inventory = getInventory();
+    const shoppingList = getShoppingList();
+    const now = new Date().toLocaleString();
+    const sections = ['fridge', 'freezer', 'pantry'];
 
-      if (format === 'pdf') {
-        const doc = new jsPDF();
-        let y = 20;
+    const doc = new jsPDF();
+    let y = 20;
 
-        doc.setFontSize(22);
-        doc.text('FridgeTrack Inventory', 14, y);
-        y += 10;
-        doc.setFontSize(10);
-        doc.text(`Exported: ${now}`, 14, y);
-        y += 15;
+    doc.setFontSize(22);
+    doc.text('FridgeTrack Inventory', 14, y);
+    y += 10;
+    doc.setFontSize(10);
+    doc.text(`Exported: ${now}`, 14, y);
+    y += 15;
 
-        // Summary
+    doc.setFontSize(14);
+    doc.text('Summary', 14, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.text(`Total Items: ${inventory.length}`, 14, y);
+    y += 6;
+    doc.text(`Low Stock: ${inventory.filter(i => i.quantity > 0 && i.quantity <= (i.minThreshold || 0)).length}`, 14, y);
+    y += 6;
+    doc.text(`Out of Stock: ${inventory.filter(i => i.quantity <= 0).length}`, 14, y);
+    y += 12;
+
+    sections.forEach(section => {
+      if (y > 250) { doc.addPage(); y = 20; }
+      const items = inventory.filter(i => i.section === section);
+      if (items.length > 0) {
         doc.setFontSize(14);
-        doc.text('Summary', 14, y);
+        doc.text(t(section).toUpperCase(), 14, y);
         y += 8;
         doc.setFontSize(10);
-        doc.text(`Total Items: ${inventory.length}`, 14, y);
-        y += 6;
-        doc.text(`Low Stock: ${inventory.filter(i => i.quantity > 0 && i.quantity <= (i.minThreshold || 0)).length}`, 14, y);
-        y += 6;
-        doc.text(`Out of Stock: ${inventory.filter(i => i.quantity <= 0).length}`, 14, y);
-        y += 12;
-
-        // Sections
-        const sections = ['fridge', 'freezer', 'pantry'];
-        sections.forEach(section => {
-          if (y > 250) { doc.addPage(); y = 20; }
-          const items = inventory.filter(i => i.section === section);
-          if (items.length > 0) {
-            doc.setFontSize(14);
-            doc.text(t(section).toUpperCase(), 14, y);
-            y += 8;
-            doc.setFontSize(10);
-            items.forEach(item => {
-              const status = item.quantity <= 0 ? 'OUT' : item.quantity <= (item.minThreshold || 0) ? 'LOW' : 'OK';
-              const line = `${item.name} | Qty: ${item.quantity} ${t(item.unit)} | Status: ${status}`;
-              doc.text(line, 14, y);
-              y += 6;
-            });
-            y += 6;
-          }
+        items.forEach(item => {
+          const status = item.quantity <= 0 ? 'OUT' : item.quantity <= (item.minThreshold || 0) ? 'LOW' : 'OK';
+          const line = `${item.name} | Qty: ${item.quantity} ${t(item.unit)} | Status: ${status}`;
+          doc.text(line, 14, y);
+          y += 6;
         });
+        y += 6;
+      }
+    });
 
-        // Shopping list
-        if (shoppingList.length > 0) {
-          if (y > 250) { doc.addPage(); y = 20; }
-          doc.setFontSize(14);
-          doc.text('Shopping List', 14, y);
-          y += 8;
-          doc.setFontSize(10);
-          shoppingList.forEach(item => {
-            const line = `[${item.purchased ? 'x' : ' '}] ${item.name} - ${item.suggestedQty || 1} ${t(item.unit)}`;
-            doc.text(line, 14, y);
-            y += 6;
-          });
-          y += 12;
-        }
+    if (shoppingList.length > 0) {
+      if (y > 250) { doc.addPage(); y = 20; }
+      doc.setFontSize(14);
+      doc.text('Shopping List', 14, y);
+      y += 8;
+      doc.setFontSize(10);
+      shoppingList.forEach(item => {
+        const line = `[${item.purchased ? 'x' : ' '}] ${item.name} - ${item.suggestedQty || 1} ${t(item.unit)}`;
+        doc.text(line, 14, y);
+        y += 6;
+      });
+      y += 12;
+    }
 
-        // AI Analysis prompt
-        if (y > 220) { doc.addPage(); y = 20; }
-        doc.setFontSize(12);
-        doc.text('AI Analysis Prompt', 14, y);
-        y += 8;
-        doc.setFontSize(9);
-        const aiText = t('aiPromptText');
-        const splitText = doc.splitTextToSize(aiText, 180);
-        doc.text(splitText, 14, y);
+    if (y > 220) { doc.addPage(); y = 20; }
+    doc.setFontSize(12);
+    doc.text('AI Analysis Prompt', 14, y);
+    y += 8;
+    doc.setFontSize(9);
+    const splitText = doc.splitTextToSize(t('aiPromptText'), 180);
+    doc.text(splitText, 14, y);
 
+    return doc;
+  };
+
+  const buildInventoryTXT = () => {
+    const inventory = getInventory();
+    const shoppingList = getShoppingList();
+    const now = new Date().toLocaleString();
+    const sections = ['fridge', 'freezer', 'pantry'];
+
+    let content = `===== FridgeTrack Inventory =====\n`;
+    content += `Exported: ${now}\n\n`;
+    content += `Summary:\n`;
+    content += `Total Items: ${inventory.length}\n`;
+    content += `Low Stock: ${inventory.filter(i => i.quantity > 0 && i.quantity <= (i.minThreshold || 0)).length}\n`;
+    content += `Out of Stock: ${inventory.filter(i => i.quantity <= 0).length}\n\n`;
+
+    sections.forEach(section => {
+      const items = inventory.filter(i => i.section === section);
+      if (items.length > 0) {
+        content += `${t(section).toUpperCase()}:\n`;
+        items.forEach(item => {
+          const status = item.quantity <= 0 ? 'OUT' : item.quantity <= (item.minThreshold || 0) ? 'LOW' : 'OK';
+          content += `- ${item.name} | Qty: ${item.quantity} ${t(item.unit)} | Status: ${status}\n`;
+        });
+        content += '\n';
+      }
+    });
+
+    if (shoppingList.length > 0) {
+      content += `Shopping List:\n`;
+      shoppingList.forEach(item => {
+        content += `- [${item.purchased ? 'x' : ' '}] ${item.name} - ${item.suggestedQty || 1} ${t(item.unit)}\n`;
+      });
+      content += '\n';
+    }
+
+    content += `\n${t('aiPromptText')}\n`;
+    content += `=====================================\n`;
+    return content;
+  };
+
+  const handleShareInventory = async (format) => {
+    try {
+      if (format === 'pdf') {
         const { exportInventoryPDF } = await import('../utils/fileOperations');
-        await exportInventoryPDF(doc, 'fridgetrack-inventory.pdf');
+        await exportInventoryPDF(buildInventoryPDF(), 'fridgetrack-inventory.pdf');
       } else if (format === 'txt') {
-        let content = `===== FridgeTrack Inventory =====\n`;
-        content += `Exported: ${now}\n\n`;
-        content += `Summary:\n`;
-        content += `Total Items: ${inventory.length}\n`;
-        content += `Low Stock: ${inventory.filter(i => i.quantity > 0 && i.quantity <= (i.minThreshold || 0)).length}\n`;
-        content += `Out of Stock: ${inventory.filter(i => i.quantity <= 0).length}\n\n`;
-
-        sections.forEach(section => {
-          const items = inventory.filter(i => i.section === section);
-          if (items.length > 0) {
-            content += `${t(section).toUpperCase()}:\n`;
-            items.forEach(item => {
-              const status = item.quantity <= 0 ? 'OUT' : item.quantity <= (item.minThreshold || 0) ? 'LOW' : 'OK';
-              content += `- ${item.name} | Qty: ${item.quantity} ${t(item.unit)} | Status: ${status}\n`;
-            });
-            content += '\n';
-          }
-        });
-
-        if (shoppingList.length > 0) {
-          content += `Shopping List:\n`;
-          shoppingList.forEach(item => {
-            content += `- [${item.purchased ? 'x' : ' '}] ${item.name} - ${item.suggestedQty || 1} ${t(item.unit)}\n`;
-          });
-          content += '\n';
-        }
-
-        content += `\n${t('aiPromptText')}\n`;
-        content += `=====================================\n`;
-
-        await exportInventoryTXT(content, 'fridgetrack-inventory.txt');
+        await exportInventoryTXT(buildInventoryTXT(), 'fridgetrack-inventory.txt');
       } else {
         await exportJSON(exportFullBackup(), 'fridgetrack-backup.json');
       }
       showToast(t('exportInventory'), 'success');
     } catch (e) {
       showToast(t('error'), 'error');
+    }
+  };
+
+  const handleDownloadInventory = async (format) => {
+    try {
+      const { downloadFile } = await import('../utils/fileOperations');
+      let path;
+      if (format === 'pdf') {
+        const doc = buildInventoryPDF();
+        const base64 = doc.output('datauristring').split(',')[1];
+        path = await downloadFile(base64, 'fridgetrack-inventory.pdf', true);
+      } else if (format === 'txt') {
+        path = await downloadFile(buildInventoryTXT(), 'fridgetrack-inventory.txt', false);
+      } else {
+        path = await downloadFile(JSON.stringify(exportFullBackup(), null, 2), 'fridgetrack-backup.json', false);
+      }
+      showToast(`${t('savedToDevice')}${path ? ': ' + path : ''}`, 'success');
+    } catch (e) {
+      showToast(t('downloadFailed'), 'error');
     }
   };
 
@@ -255,46 +284,49 @@ function Settings() {
           <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
             {t('appearance')}
           </h2>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {/* Dark Mode */}
-            <button
-              type="button"
-              onClick={() => updateSettings({ darkMode: !settings.darkMode })}
-              aria-label={settings.darkMode ? t('lightMode') : t('darkMode')}
-              aria-pressed={settings.darkMode}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors active:bg-gray-100 dark:active:bg-gray-700 border-b border-gray-100 dark:border-gray-700"
-            >
-              <div className="flex items-center gap-3">
-                {settings.darkMode ? <Moon size={20} className="text-purple-500" /> : <Sun size={20} className="text-amber-500" />}
-                <span className="text-gray-900 dark:text-white font-medium">
-                  {settings.darkMode ? t('darkMode') : t('lightMode')}
-                </span>
-              </div>
-              <div dir="ltr" className={`h-7 w-12 rounded-full transition-colors duration-300 ${settings.darkMode ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'} relative`}>
-                <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300 ${settings.darkMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
-              </div>
-            </button>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4">
+            {/* Theme — 3 buttons */}
+            <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">{t('appearance')}</p>
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {[
+                { key: 'light', label: t('lightMode'), icon: Sun },
+                { key: 'dark', label: t('darkMode'), icon: Moon },
+                { key: 'system', label: t('systemDefault'), icon: Monitor },
+              ].map((opt) => {
+                const Icon = opt.icon;
+                const isActive = (settings.theme ?? 'system') === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => updateSettings({ theme: opt.key })}
+                    aria-pressed={isActive}
+                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-green-500 border-green-500 text-white shadow-md shadow-green-500/20'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    <Icon size={18} />
+                    <span className="leading-tight text-center">{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Animations */}
-            <button
-              type="button"
-              onClick={() => updateSettings({ animationsEnabled: !(settings.animationsEnabled !== false) })}
-              aria-pressed={settings.animationsEnabled !== false}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors active:bg-gray-100 dark:active:bg-gray-700"
-            >
-              <div className="flex items-start gap-3">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500 mt-0.5">
-                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-                </svg>
-                <div className="text-start">
-                  <p className="text-gray-900 dark:text-white font-medium">{t('enableAnimations')}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('enableAnimationsDesc')}</p>
-                </div>
-              </div>
-              <div dir="ltr" className={`h-7 w-12 rounded-full transition-colors duration-300 shrink-0 ms-3 ${settings.animationsEnabled !== false ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} relative`}>
-                <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300 ${settings.animationsEnabled !== false ? 'translate-x-5' : 'translate-x-0.5'}`} />
-              </div>
-            </button>
+            <div className="flex items-start gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <Checkbox
+                id="animations"
+                checked={settings.animationsEnabled !== false}
+                onCheckedChange={(checked) => updateSettings({ animationsEnabled: !!checked })}
+                className="mt-0.5"
+              />
+              <label htmlFor="animations" className="cursor-pointer">
+                <p className="text-gray-900 dark:text-white font-medium">{t('enableAnimations')}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('enableAnimationsDesc')}</p>
+              </label>
+            </div>
           </div>
         </section>
 
@@ -390,37 +422,27 @@ function Settings() {
             {t('notifications')}
           </h2>
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden space-y-1">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <Bell size={20} className="text-green-500" />
-                <span className="text-gray-900 dark:text-white font-medium">{t('enableNotifications')}</span>
-              </div>
-              <button
-                type="button"
-                dir="ltr"
-                onClick={() => updateSettings({ notifications: !settings.notifications })}
-                aria-label={t('enableNotifications')}
-                aria-pressed={settings.notifications}
-                className={`h-7 w-12 rounded-full transition-colors duration-300 ${settings.notifications ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} relative`}
-              >
-                <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300 ${settings.notifications ? 'translate-x-5' : 'translate-x-0.5'}`} />
-              </button>
+            <div className="flex items-center gap-3 p-4">
+              <Checkbox
+                id="notifications"
+                checked={settings.notifications}
+                onCheckedChange={(checked) => updateSettings({ notifications: !!checked })}
+              />
+              <Bell size={20} className="text-green-500" />
+              <label htmlFor="notifications" className="text-gray-900 dark:text-white font-medium cursor-pointer">
+                {t('enableNotifications')}
+              </label>
             </div>
-            <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-3">
-                <Bell size={20} className="text-amber-500" />
-                <span className="text-gray-900 dark:text-white font-medium">{t('enableUnusedReminders')}</span>
-              </div>
-              <button
-                type="button"
-                dir="ltr"
-                onClick={() => updateSettings({ unusedReminders: !settings.unusedReminders })}
-                aria-label={t('enableUnusedReminders')}
-                aria-pressed={settings.unusedReminders}
-                className={`h-7 w-12 rounded-full transition-colors duration-300 ${settings.unusedReminders ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} relative`}
-              >
-                <div className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-300 ${settings.unusedReminders ? 'translate-x-5' : 'translate-x-0.5'}`} />
-              </button>
+            <div className="flex items-center gap-3 p-4 border-t border-gray-100 dark:border-gray-700">
+              <Checkbox
+                id="unusedReminders"
+                checked={settings.unusedReminders}
+                onCheckedChange={(checked) => updateSettings({ unusedReminders: !!checked })}
+              />
+              <Bell size={20} className="text-amber-500" />
+              <label htmlFor="unusedReminders" className="text-gray-900 dark:text-white font-medium cursor-pointer">
+                {t('enableUnusedReminders')}
+              </label>
             </div>
             <div className="p-4 border-t border-gray-100 dark:border-gray-700">
               <label className="text-sm text-gray-600 dark:text-gray-400 block mb-2">{t('dailyNotificationTime')}</label>
@@ -443,18 +465,32 @@ function Settings() {
             {/* Export Inventory */}
             <div className="p-4 border-b border-gray-100 dark:border-gray-700">
               <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">{t('exportInventory')}</p>
-              <div className="flex gap-2">
+              <div className="space-y-2">
                 {exportFormats.map(fmt => {
                   const Icon = fmt.icon;
                   return (
-                    <button
-                      key={fmt.key}
-                      onClick={() => handleExportInventory(fmt.key)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
-                      <Icon size={14} />
-                      {fmt.label}
-                    </button>
+                    <div key={fmt.key} className="flex items-center gap-2">
+                      <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium">
+                        <Icon size={14} />
+                        {fmt.label}
+                      </div>
+                      <button
+                        onClick={() => handleShareInventory(fmt.key)}
+                        title={t('share')}
+                        aria-label={`${t('share')} ${fmt.label}`}
+                        className="flex items-center justify-center w-9 h-9 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        <Share2 size={15} />
+                      </button>
+                      <button
+                        onClick={() => handleDownloadInventory(fmt.key)}
+                        title={t('download')}
+                        aria-label={`${t('download')} ${fmt.label}`}
+                        className="flex items-center justify-center w-9 h-9 shrink-0 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
+                      >
+                        <Download size={15} />
+                      </button>
+                    </div>
                   );
                 })}
               </div>

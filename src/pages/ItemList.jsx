@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -96,9 +96,9 @@ function ItemList({ section: propSection }) {
     all: t('emptyAll'),
   };
 
-  const handleEdit = (item) => {
+  const handleEdit = useCallback((item) => {
     navigateTo(`edit-${item.id}`);
-  };
+  }, [navigateTo]);
 
   return (
     <div className="pb-24">

@@ -179,7 +179,7 @@ function Dashboard() {
                 transition={{ delay: 0.2 + i * 0.05 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={card.onClick}
-                className={`flex flex-col items-start p-4 rounded-2xl border ${card.border} ${card.bg} backdrop-blur-sm text-left active:scale-95 transition-transform`}
+                className={`flex flex-col items-start p-4 rounded-2xl border ${card.border} ${card.bg} text-left active:scale-95 transition-transform`}
               >
                 <div className={`${card.color} mb-2`}>
                   <Icon size={24} />
@@ -210,7 +210,7 @@ function Dashboard() {
                 transition={{ delay: 0.35 + i * 0.05 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigateTo(section.key)}
-                className={`w-full flex items-center gap-4 p-4 rounded-2xl border ${section.border} ${section.bg} backdrop-blur-sm text-left active:scale-[0.98] transition-transform`}
+                className={`w-full flex items-center gap-4 p-4 rounded-2xl border ${section.border} ${section.bg} text-left active:scale-[0.98] transition-transform`}
               >
                 <div className={`${section.color}`}>
                   <Icon size={28} />
@@ -243,7 +243,7 @@ function Dashboard() {
           transition={{ delay: 0.5 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => navigateTo('shopping')}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl border border-purple-500/20 bg-purple-500/10 backdrop-blur-sm text-left active:scale-[0.98] transition-transform"
+          className="w-full flex items-center gap-4 p-4 rounded-2xl border border-purple-500/20 bg-purple-500/10 text-left active:scale-[0.98] transition-transform"
         >
           <div className="text-purple-500">
             <ShoppingCart size={28} />

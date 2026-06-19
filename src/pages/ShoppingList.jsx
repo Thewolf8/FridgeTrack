@@ -232,10 +232,10 @@ function ShoppingListPage() {
                       {group.items.map(item => (
                         <motion.div
                           key={item.id}
-                          layout
-                          initial={{ opacity: 0, y: 10 }}
+                          initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: -100 }}
+                          transition={{ duration: 0.15 }}
                           className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3"
                         >
                           <div className="flex items-center gap-3">
