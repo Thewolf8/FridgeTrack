@@ -82,3 +82,31 @@
   transition-duration: 0.001ms !important;
   transition-delay: 0ms !important;
 }
+
+/* ── AMOLED Black theme ──────────────────────────────────────────────
+   Applied when <html> has BOTH .dark and .amoled classes (set from
+   AppContext based on settings.theme + settings.darkVariant). Overrides
+   the existing dark:bg-gray-900 / dark:bg-gray-800 / dark:bg-gray-700
+   Tailwind utility classes used throughout the app with true near-black
+   values, without needing to touch every component file. Order matters:
+   more specific (opacity-suffixed) rules come AFTER their base rule so
+   they win the cascade. */
+
+.amoled [class*="dark:bg-gray-900"] { background-color: #000000 !important; }
+.amoled [class*="dark:bg-gray-900/90"] { background-color: rgba(0, 0, 0, 0.92) !important; }
+
+.amoled [class*="dark:bg-gray-800"] { background-color: #0a0a0a !important; }
+
+.amoled [class*="dark:bg-gray-700"] { background-color: #141414 !important; }
+.amoled [class*="dark:bg-gray-700/50"] { background-color: rgba(20, 20, 20, 0.5) !important; }
+.amoled [class*="dark:hover:bg-gray-700/50"]:hover { background-color: rgba(26, 26, 26, 0.6) !important; }
+.amoled [class*="dark:hover:bg-gray-700"]:hover { background-color: #1a1a1a !important; }
+.amoled [class*="dark:active:bg-gray-700"]:active { background-color: #1a1a1a !important; }
+.amoled [class*="dark:hover:bg-gray-800"]:hover { background-color: #111111 !important; }
+
+.amoled [class*="dark:bg-gray-600"] { background-color: #1f1f1f !important; }
+.amoled [class*="dark:hover:bg-gray-600"]:hover { background-color: #262626 !important; }
+.amoled [class*="dark:active:bg-gray-600"]:active { background-color: #262626 !important; }
+
+.amoled [class*="dark:border-gray-700"] { border-color: #1f1f1f !important; }
+.amoled [class*="dark:border-gray-600"] { border-color: #2a2a2a !important; }
