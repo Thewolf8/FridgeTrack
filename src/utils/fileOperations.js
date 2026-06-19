@@ -1,93 +1,48 @@
-let Filesystem = null;
-let Share = null;
-let Capacitor = null;
+// ⚠️ CRITICAL FIX: this file previously loaded Capacitor plugins via
+// require('@capacitor/...') wrapped in try/catch. Vite-bundled apps (and
+// the Capacitor WebView) have NO `require` function at runtime — every
+// call threw "ReferenceError: require is not defined", silently caught,
+// leaving Filesystem/Share/Capacitor permanently null. As a result
+// isNativePlatform() ALWAYS returned false — even inside the real
+// installed Android app — so Share/Download silently fell back to
+// web-only code (blob links, clipboard) that does nothing inside a
+// WebView. Switching to normal static ES imports (exactly like a working
+// Capacitor app should) fixes this for good; the plugins resolve
+// correctly on both web and native automatically.
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 
-try {
-  Filesystem = require('@capacitor/filesystem').Filesystem;
-  Share = require('@capacitor/share').Share;
-  Capacitor = require('@capacitor/core').Capacitor;
-} catch {
-  // Not in Capacitor environment — will use web fallbacks
-}
+// Cache directory is reliable for sharing across all Android versions.
+// Documents directory is used for true on-device downloads.
+const SHARE_DIR = Directory.Cache;
+const SAVE_DIR = Directory.Documents;
 
-const Directory = {
-  Documents: 'DOCUMENTS',
-  Downloads: 'DOWNLOADS',
-  Data: 'DATA',
-  Cache: 'CACHE',
-  External: 'EXTERNAL',
-  ExternalStorage: 'EXTERNAL_STORAGE',
-};
-
-function isNativePlatform() {
+export function isNativePlatform() {
   try {
-    return Capacitor?.isNativePlatform?.() || false;
+    return Capacitor.isNativePlatform();
   } catch {
     return false;
   }
 }
 
-async function writeFileNative(filename, data, directory = Directory.Documents) {
-  if (!Filesystem) throw new Error('Filesystem plugin not available');
+async function writeFileNative(filename, data, directory = SHARE_DIR, encoding) {
   const result = await Filesystem.writeFile({
     path: filename,
     data,
     directory,
+    encoding,
     recursive: true,
   });
   return result.uri;
 }
 
-// ===== TRUE DIRECT DOWNLOAD (no share sheet) =====
-// Saves the file straight into Documents/fridgetrack-backups/ on device,
-// or triggers a normal browser download on web. Distinct from the
-// share*() functions above, which always open the OS share sheet.
-export async function downloadFile(content, filename, isBase64 = false) {
-  const path = `fridgetrack-backups/${filename}`;
-
-  if (isNativePlatform() && Filesystem) {
-    try {
-      const perm = await Filesystem.checkPermissions?.();
-      if (perm && perm.publicStorage !== 'granted') {
-        await Filesystem.requestPermissions?.();
-      }
-    } catch {
-      // Newer Android versions manage this automatically — continue
-    }
-
-    const data = isBase64 ? content : content;
-    await Filesystem.writeFile({
-      path,
-      data,
-      directory: Directory.Documents,
-      recursive: true,
-    });
-    return `Documents/${path}`;
-  }
-
-  // Web fallback: real browser download
-  if (isBase64) {
-    downloadBase64(content, filename, 'application/octet-stream');
-  } else {
-    downloadBlob(content, filename, 'text/plain');
-  }
-  return filename;
-}
-
 async function shareFileNative(uri, title = 'Share') {
-  if (!Share) throw new Error('Share plugin not available');
-  await Share.share({
-    title,
-    url: uri,
-  });
+  await Share.share({ title, url: uri });
 }
 
 async function shareTextNative(text, title = 'Share') {
-  if (!Share) throw new Error('Share plugin not available');
-  await Share.share({
-    title,
-    text,
-  });
+  await Share.share({ title, text });
 }
 
 // Web fallback: blob download
@@ -121,12 +76,47 @@ function downloadBase64(base64Data, filename, mimeType) {
   URL.revokeObjectURL(url);
 }
 
+// ===== TRUE DIRECT DOWNLOAD (no share sheet) =====
+// Saves the file straight into Documents/fridgetrack-backups/ on device,
+// or triggers a normal browser download on web. Distinct from the
+// share*() functions below, which always open the OS share sheet.
+export async function downloadFile(content, filename, isBase64 = false) {
+  const path = `fridgetrack-backups/${filename}`;
+
+  if (isNativePlatform()) {
+    try {
+      const perm = await Filesystem.checkPermissions();
+      if (perm?.publicStorage !== 'granted') {
+        await Filesystem.requestPermissions();
+      }
+    } catch {
+      // Newer Android versions (scoped storage) manage this automatically
+    }
+
+    await Filesystem.writeFile({
+      path,
+      data: content,
+      directory: SAVE_DIR,
+      encoding: isBase64 ? undefined : Encoding.UTF8,
+      recursive: true,
+    });
+    return `Documents/${path}`;
+  }
+
+  // Web fallback: real browser download
+  if (isBase64) {
+    downloadBase64(content, filename, 'application/octet-stream');
+  } else {
+    downloadBlob(content, filename, 'text/plain');
+  }
+  return filename;
+}
+
 // ===== SHARE SHOPPING LIST AS TEXT =====
 export async function shareShoppingListAsText(formattedText) {
-  if (isNativePlatform() && Share) {
+  if (isNativePlatform()) {
     await shareTextNative(formattedText, 'Shopping List');
   } else {
-    // Web fallback: copy to clipboard or download as txt
     try {
       await navigator.clipboard.writeText(formattedText);
     } catch {
@@ -135,50 +125,48 @@ export async function shareShoppingListAsText(formattedText) {
   }
 }
 
-// ===== DOWNLOAD AS PDF =====
+// ===== SHARE AS PDF (opens OS share sheet) =====
 export async function downloadPDF(pdfDoc, filename = 'shopping-list.pdf') {
   const pdfOutput = pdfDoc.output('datauristring');
   const base64Data = pdfOutput.split(',')[1];
 
-  if (isNativePlatform() && Filesystem && Share) {
-    const uri = await writeFileNative(filename, base64Data, Directory.Documents);
+  if (isNativePlatform()) {
+    const uri = await writeFileNative(filename, base64Data, SHARE_DIR);
     await shareFileNative(uri, filename);
   } else {
     pdfDoc.save(filename);
   }
 }
 
-// ===== EXPORT AS JSON =====
+// ===== SHARE AS JSON (opens OS share sheet) =====
 export async function exportJSON(data, filename = 'fridgetrack-export.json') {
   const jsonStr = JSON.stringify(data, null, 2);
 
-  if (isNativePlatform() && Filesystem && Share) {
-    const base64Data = btoa(unescape(encodeURIComponent(jsonStr)));
-    const uri = await writeFileNative(filename, base64Data, Directory.Documents);
+  if (isNativePlatform()) {
+    const uri = await writeFileNative(filename, jsonStr, SHARE_DIR, Encoding.UTF8);
     await shareFileNative(uri, filename);
   } else {
     downloadBlob(jsonStr, filename, 'application/json');
   }
 }
 
-// ===== EXPORT INVENTORY PDF =====
+// ===== SHARE INVENTORY PDF =====
 export async function exportInventoryPDF(pdfDoc, filename = 'fridgetrack-inventory.pdf') {
   const pdfOutput = pdfDoc.output('datauristring');
   const base64Data = pdfOutput.split(',')[1];
 
-  if (isNativePlatform() && Filesystem && Share) {
-    const uri = await writeFileNative(filename, base64Data, Directory.Documents);
+  if (isNativePlatform()) {
+    const uri = await writeFileNative(filename, base64Data, SHARE_DIR);
     await shareFileNative(uri, filename);
   } else {
     pdfDoc.save(filename);
   }
 }
 
-// ===== EXPORT INVENTORY TXT =====
+// ===== SHARE INVENTORY TXT =====
 export async function exportInventoryTXT(content, filename = 'fridgetrack-inventory.txt') {
-  if (isNativePlatform() && Filesystem && Share) {
-    const base64Data = btoa(unescape(encodeURIComponent(content)));
-    const uri = await writeFileNative(filename, base64Data, Directory.Documents);
+  if (isNativePlatform()) {
+    const uri = await writeFileNative(filename, content, SHARE_DIR, Encoding.UTF8);
     await shareFileNative(uri, filename);
   } else {
     downloadBlob(content, filename, 'text/plain');
@@ -217,14 +205,11 @@ export function pickJSONFile() {
 export async function requestStoragePermissions() {
   if (!isNativePlatform()) return { granted: true };
   try {
-    // The Filesystem plugin handles permissions internally
-    // but we can check if it's available
-    if (!Filesystem) return { granted: false };
-    // Try a test write to verify permissions
     await Filesystem.writeFile({
       path: '.permission_test',
       data: 'test',
       directory: Directory.Cache,
+      encoding: Encoding.UTF8,
     });
     await Filesystem.deleteFile({
       path: '.permission_test',
@@ -266,4 +251,4 @@ export function formatShoppingListAsText(items, t) {
 // Re-export storage functions for convenience
 export { exportFullBackup, importFullBackup } from './storage';
 
-export { isNativePlatform, Directory };
+export { Directory };
