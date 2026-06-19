@@ -8,62 +8,56 @@ import {
   getStockStatus,
 } from '../utils/storage';
 
+// ⚠️ FIX: setInventory/setShoppingList now correctly support BOTH a plain
+// array and a functional updater (prev => next). Previously, passing an
+// updater function caused saveInventory(fn) to serialize the function
+// itself (JSON.stringify(fn) === undefined), silently corrupting
+// localStorage on every add/update/delete/adjustQuantity call. Data looked
+// fine in-session but vanished after closing and reopening the app.
+
 export function useStorage() {
   const [inventory, setInventoryState] = useState(() => getInventory());
   const [shoppingList, setShoppingListState] = useState(() => getShoppingList());
 
-  const setInventory = useCallback((newInventory) => {
-    setInventoryState(newInventory);
-    saveInventory(newInventory);
+  const setInventory = useCallback((updaterOrArray) => {
+    setInventoryState(prev => {
+      const next = typeof updaterOrArray === 'function' ? updaterOrArray(prev) : updaterOrArray;
+      saveInventory(next);
+      return next;
+    });
   }, []);
 
-  const setShoppingList = useCallback((newList) => {
-    setShoppingListState(newList);
-    saveShoppingList(newList);
+  const setShoppingList = useCallback((updaterOrArray) => {
+    setShoppingListState(prev => {
+      const next = typeof updaterOrArray === 'function' ? updaterOrArray(prev) : updaterOrArray;
+      saveShoppingList(next);
+      return next;
+    });
   }, []);
 
   const addItem = useCallback((item) => {
     const newItem = { ...item, id: generateId(), createdAt: new Date().toISOString() };
-    setInventory(prev => {
-      const updated = [...prev, newItem];
-      saveInventory(updated);
-      return updated;
-    });
+    setInventory(prev => [...prev, newItem]);
     return newItem;
   }, []);
 
   const updateItem = useCallback((id, updates) => {
-    setInventory(prev => {
-      const updated = prev.map(item => item.id === id ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item);
-      saveInventory(updated);
-      return updated;
-    });
+    setInventory(prev => prev.map(item =>
+      item.id === id ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item
+    ));
   }, []);
 
   const deleteItem = useCallback((id) => {
-    setInventory(prev => {
-      const updated = prev.filter(item => item.id !== id);
-      saveInventory(updated);
-      return updated;
-    });
-    // Also remove from shopping list if present
-    setShoppingList(prev => {
-      const updated = prev.filter(item => item.itemId !== id);
-      saveShoppingList(updated);
-      return updated;
-    });
+    setInventory(prev => prev.filter(item => item.id !== id));
+    setShoppingList(prev => prev.filter(item => item.itemId !== id));
   }, []);
 
   const adjustQuantity = useCallback((id, delta) => {
-    setInventory(prev => {
-      const updated = prev.map(item => {
-        if (item.id !== id) return item;
-        const newQty = Math.max(0, item.quantity + delta);
-        return { ...item, quantity: newQty, updatedAt: new Date().toISOString() };
-      });
-      saveInventory(updated);
-      return updated;
-    });
+    setInventory(prev => prev.map(item => {
+      if (item.id !== id) return item;
+      const newQty = Math.max(0, item.quantity + delta);
+      return { ...item, quantity: newQty, updatedAt: new Date().toISOString() };
+    }));
 
     // Auto-add to shopping list if low/out of stock
     setTimeout(() => {
@@ -86,9 +80,7 @@ export function useStorage() {
             purchased: false,
             createdAt: new Date().toISOString(),
           };
-          const updated = [...prev, newEntry];
-          saveShoppingList(updated);
-          return updated;
+          return [...prev, newEntry];
         });
       }
     }, 0);
@@ -112,18 +104,12 @@ export function useStorage() {
         purchased: false,
         createdAt: new Date().toISOString(),
       };
-      const updated = [...prev, newEntry];
-      saveShoppingList(updated);
-      return updated;
+      return [...prev, newEntry];
     });
   }, []);
 
   const removeFromShoppingList = useCallback((entryId) => {
-    setShoppingList(prev => {
-      const updated = prev.filter(item => item.id !== entryId);
-      saveShoppingList(updated);
-      return updated;
-    });
+    setShoppingList(prev => prev.filter(item => item.id !== entryId));
   }, []);
 
   const markAsPurchased = useCallback((entryId, boughtQty) => {
@@ -131,52 +117,31 @@ export function useStorage() {
     const entry = list.find(e => e.id === entryId);
     if (!entry) return;
 
-    // Update inventory quantity
     if (entry.itemId) {
-      const inv = getInventory();
-      const item = inv.find(i => i.id === entry.itemId);
-      if (item) {
-        const newQty = (item.quantity || 0) + (boughtQty || entry.suggestedQty || 1);
-        const updated = inv.map(i => i.id === entry.itemId ? { ...i, quantity: newQty, updatedAt: new Date().toISOString() } : i);
-        saveInventory(updated);
-        setInventoryState(updated);
-      }
+      setInventory(prev => prev.map(i =>
+        i.id === entry.itemId
+          ? { ...i, quantity: (i.quantity || 0) + (boughtQty || entry.suggestedQty || 1), updatedAt: new Date().toISOString() }
+          : i
+      ));
     }
 
-    // Remove from shopping list
-    setShoppingList(prev => {
-      const updated = prev.filter(item => item.id !== entryId);
-      saveShoppingList(updated);
-      return updated;
-    });
+    setShoppingList(prev => prev.filter(item => item.id !== entryId));
   }, []);
 
   const clearPurchased = useCallback(() => {
-    setShoppingList(prev => {
-      const updated = prev.filter(item => !item.purchased);
-      saveShoppingList(updated);
-      return updated;
-    });
+    setShoppingList(prev => prev.filter(item => !item.purchased));
   }, []);
 
   const toggleShoppingItemPurchased = useCallback((entryId) => {
-    setShoppingList(prev => {
-      const updated = prev.map(item =>
-        item.id === entryId ? { ...item, purchased: !item.purchased } : item
-      );
-      saveShoppingList(updated);
-      return updated;
-    });
+    setShoppingList(prev => prev.map(item =>
+      item.id === entryId ? { ...item, purchased: !item.purchased } : item
+    ));
   }, []);
 
   const updateShoppingItemQty = useCallback((entryId, newQty) => {
-    setShoppingList(prev => {
-      const updated = prev.map(item =>
-        item.id === entryId ? { ...item, suggestedQty: newQty } : item
-      );
-      saveShoppingList(updated);
-      return updated;
-    });
+    setShoppingList(prev => prev.map(item =>
+      item.id === entryId ? { ...item, suggestedQty: newQty } : item
+    ));
   }, []);
 
   const resetData = useCallback(() => {
