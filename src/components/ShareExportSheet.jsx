@@ -1,12 +1,13 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FileText, FileDown, FileJson, Share2 } from 'lucide-react';
+import { X, FileText, FileDown, FileJson, Share2, Download } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n';
 import {
   shareShoppingListAsText,
   downloadPDF,
   exportJSON,
+  downloadFile,
   formatShoppingListAsText,
 } from '../utils/fileOperations';
 import { jsPDF } from 'jspdf';
@@ -27,63 +28,88 @@ function ShareExportSheet({ isOpen, onClose, items }) {
     onClose();
   };
 
-  const handleDownloadPDF = async () => {
-    try {
-      const doc = new jsPDF();
-      const now = new Date().toLocaleString();
+  const buildShoppingListPDF = () => {
+    const doc = new jsPDF();
+    const now = new Date().toLocaleString();
 
-      doc.setFontSize(20);
-      doc.text('FridgeTrack - Shopping List', 14, 20);
-      doc.setFontSize(10);
-      doc.text(`Generated: ${now}`, 14, 28);
+    doc.setFontSize(20);
+    doc.text('FridgeTrack - Shopping List', 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${now}`, 14, 28);
 
-      let y = 40;
-      const sections = ['fridge', 'freezer', 'pantry'];
+    let y = 40;
+    const sections = ['fridge', 'freezer', 'pantry'];
 
-      sections.forEach(section => {
-        const sectionItems = items.filter(i => i.section === section && !i.purchased);
-        if (sectionItems.length > 0) {
-          doc.setFontSize(14);
-          doc.text(t(section).toUpperCase(), 14, y);
-          y += 8;
+    sections.forEach(section => {
+      const sectionItems = items.filter(i => i.section === section && !i.purchased);
+      if (sectionItems.length > 0) {
+        doc.setFontSize(14);
+        doc.text(t(section).toUpperCase(), 14, y);
+        y += 8;
 
-          doc.setFontSize(10);
-          sectionItems.forEach(item => {
-            const line = `[ ] ${item.name} - ${item.suggestedQty || 1} ${t(item.unit) || ''}`;
-            doc.text(line, 18, y);
-            y += 6;
-          });
-          y += 4;
-        }
-      });
-
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
+        doc.setFontSize(10);
+        sectionItems.forEach(item => {
+          const line = `[ ] ${item.name} - ${item.suggestedQty || 1} ${t(item.unit) || ''}`;
+          doc.text(line, 18, y);
+          y += 6;
+        });
+        y += 4;
       }
+    });
 
-      doc.setFontSize(10);
-      doc.text('=====================================', 14, y);
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
 
-      await downloadPDF(doc, 'fridgetrack-shopping-list.pdf');
-      showToast(t('downloadPDF'), 'success');
+    doc.setFontSize(10);
+    doc.text('=====================================', 14, y);
+    return doc;
+  };
+
+  const buildShoppingListJSON = () => ({
+    shoppingList: items,
+    exportedAt: new Date().toISOString(),
+    version: '1.0',
+  });
+
+  const handleSharePDF = async () => {
+    try {
+      await downloadPDF(buildShoppingListPDF(), 'fridgetrack-shopping-list.pdf');
+      showToast(t('exportInventory'), 'success');
     } catch (e) {
       showToast(t('error'), 'error');
     }
     onClose();
   };
 
-  const handleExportJSON = async () => {
+  const handleDownloadPDFDirect = async () => {
     try {
-      const data = {
-        shoppingList: items,
-        exportedAt: new Date().toISOString(),
-        version: '1.0',
-      };
-      await exportJSON(data, 'fridgetrack-shopping-list.json');
-      showToast(t('exportJSON'), 'success');
+      const base64 = buildShoppingListPDF().output('datauristring').split(',')[1];
+      const path = await downloadFile(base64, 'fridgetrack-shopping-list.pdf', true);
+      showToast(`${t('savedToDevice')}${path ? ': ' + path : ''}`, 'success');
+    } catch (e) {
+      showToast(t('downloadFailed'), 'error');
+    }
+    onClose();
+  };
+
+  const handleShareJSON = async () => {
+    try {
+      await exportJSON(buildShoppingListJSON(), 'fridgetrack-shopping-list.json');
+      showToast(t('exportInventory'), 'success');
     } catch (e) {
       showToast(t('error'), 'error');
+    }
+    onClose();
+  };
+
+  const handleDownloadJSONDirect = async () => {
+    try {
+      const path = await downloadFile(JSON.stringify(buildShoppingListJSON(), null, 2), 'fridgetrack-shopping-list.json', false);
+      showToast(`${t('savedToDevice')}${path ? ': ' + path : ''}`, 'success');
+    } catch (e) {
+      showToast(t('downloadFailed'), 'error');
     }
     onClose();
   };
@@ -105,7 +131,8 @@ function ShareExportSheet({ isOpen, onClose, items }) {
       icon: FileDown,
       color: 'text-red-500',
       bg: 'bg-red-500/10',
-      onClick: handleDownloadPDF,
+      onShare: handleSharePDF,
+      onDownload: handleDownloadPDFDirect,
     },
     {
       key: 'json',
@@ -114,7 +141,8 @@ function ShareExportSheet({ isOpen, onClose, items }) {
       icon: FileJson,
       color: 'text-blue-500',
       bg: 'bg-blue-500/10',
-      onClick: handleExportJSON,
+      onShare: handleShareJSON,
+      onDownload: handleDownloadJSONDirect,
     },
   ];
 
@@ -155,22 +183,60 @@ function ShareExportSheet({ isOpen, onClose, items }) {
           <div className="space-y-3">
             {options.map((option) => {
               const Icon = option.icon;
+
+              // "Share as text" — single action, unchanged
+              if (option.onClick) {
+                return (
+                  <button
+                    type="button"
+                    key={option.key}
+                    onClick={option.onClick}
+                    aria-label={`${option.label} — ${option.description}`}
+                    className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.98] transition-all text-start"
+                  >
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${option.bg}`}>
+                      <Icon className={option.color} size={24} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 dark:text-white">{option.label}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{option.description}</p>
+                    </div>
+                  </button>
+                );
+              }
+
+              // PDF / JSON — two distinct actions: Share vs true Download
               return (
-                <button
-                  type="button"
+                <div
                   key={option.key}
-                  onClick={option.onClick}
-                  aria-label={`${option.label} — ${option.description}`}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-[0.98] transition-all text-start"
+                  className="w-full flex items-center gap-3 p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/50"
                 >
                   <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${option.bg}`}>
                     <Icon className={option.color} size={24} aria-hidden="true" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-gray-900 dark:text-white">{option.label}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{option.description}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{option.description}</p>
                   </div>
-                </button>
+                  <button
+                    type="button"
+                    onClick={option.onShare}
+                    title={t('share')}
+                    aria-label={`${t('share')} ${option.label}`}
+                    className="flex items-center justify-center w-10 h-10 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 active:scale-95 transition-transform"
+                  >
+                    <Share2 size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={option.onDownload}
+                    title={t('download')}
+                    aria-label={`${t('download')} ${option.label}`}
+                    className="flex items-center justify-center w-10 h-10 shrink-0 rounded-xl bg-green-500 text-white active:scale-95 transition-transform"
+                  >
+                    <Download size={16} />
+                  </button>
+                </div>
               );
             })}
           </div>
