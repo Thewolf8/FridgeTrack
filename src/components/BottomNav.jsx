@@ -59,7 +59,7 @@ function BottomNav() {
             <button
               type="button"
               key={tab.key}
-              onClick={() => navigateTo(tab.key === 'items' ? 'fridge' : tab.key)}
+              onClick={() => navigateTo(tab.key)}
               aria-label={tab.badge > 0 ? `${tab.label} (${tab.badge})` : tab.label}
               aria-current={isActive ? 'page' : undefined}
               className="relative flex flex-col items-center justify-center py-2 px-3 min-w-[60px] active:scale-95 transition-transform"
